@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hornos Optimizador Industrial – POINSA S.A.</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+:root {
+  --navy:    #0a1628;
+  --navy2:   #0f2040;
+  --blue:    #004080;
+  --blue2:   #0055a5;
+  --accent:  #e8a020;
+  --accent2: #f0b84a;
+  --steel:   #2a3a50;
+  --muted:   #8096b0;
+  --line:    #1e3050;
+  --white:   #f0f4f8;
+  --green:   #1aab5a;
+  --red:     #d03030;
+  --yellow:  #e8a020;
+  --font:    'IBM Plex Sans', sans-serif;
+  --mono:    'IBM Plex Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ─── HEADER ─── */
+header {
+  background: var(--navy2);
+  border-bottom: 2px solid var(--accent);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo-area { display: flex; align-items: center; gap: 16px; }
+.logo-mark {
+  width: 40px; height: 40px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-weight: 600; font-size: 16px;
+  color: var(--navy);
+  clip-path: polygon(0 0, 90% 0, 100% 10%, 100% 100%, 10% 100%, 0 90%);
+}
+.logo-text h1 { font-size: 15px; font-weight: 700; letter-spacing: .03em; }
+.logo-text p  { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top:1px; }
+.header-meta  { font-size: 11px; color: var(--muted); font-family: var(--mono); text-align: right; }
+
+/* ─── LAYOUT ─── */
+.app-body { display: flex; min-height: calc(100vh - 64px); }
+.sidebar {
+  width: 320px; min-width: 320px;
+  background: var(--navy2);
+  border-right: 1px solid var(--line);
+  padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.main-content {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+}
+
+/* ─── CARDS / SECTIONS ─── */
+.card {
+  background: var(--steel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.card-header {
+  background: var(--navy);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.card-header .badge {
+  background: var(--accent);
+  color: var(--navy);
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+.card-header span { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.card-body { padding: 14px; }
+
+/* ─── FORM ELEMENTS ─── */
+label { font-size: 11px; color: var(--muted); font-family: var(--mono); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .06em; }
+input[type=text], input[type=number], select {
+  width: 100%;
+  background: var(--navy);
+  border: 1px solid var(--line);
+  color: var(--white);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color .15s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+input::placeholder { color: var(--muted); }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 16px;
+  border: none; border-radius: 4px;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  width: 100%;
+  white-space: nowrap;
+}
+.btn-primary   { background: var(--blue); color: white; }
+.btn-primary:hover:not(:disabled)   { background: var(--blue2); }
+.btn-accent    { background: var(--accent); color: var(--navy); }
+.btn-accent:hover:not(:disabled)    { background: var(--accent2); }
+.btn-ghost     { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.btn-ghost:hover:not(:disabled)     { color: var(--white); border-color: var(--muted); }
+.btn-green     { background: var(--green); color: white; }
+.btn-green:hover:not(:disabled)     { opacity: .85; }
+.btn-danger    { background: var(--red); color: white; }
+.btn-danger:hover:not(:disabled)    { opacity: .85; }
+.btn:disabled  { opacity: .35; cursor: not-allowed; }
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* ─── FILE UPLOAD ─── */
+.file-drop {
+  border: 2px dashed var(--line);
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+}
+.file-drop:hover, .file-drop.drag-over {
+  border-color: var(--accent);
+  background: rgba(232,160,32,.05);
+}
+.file-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.file-drop .icon { font-size: 28px; margin-bottom: 6px; }
+.file-drop p { font-size: 12px; color: var(--muted); }
+.file-drop .filename { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-top: 6px; word-break: break-all; }
+
+/* ─── HORNO CONFIG TABLE ─── */
+.horno-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.horno-row:last-child { border: none; }
+.horno-badge {
+  background: var(--blue); color: white;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 3px; min-width: 60px; text-align: center;
+}
+.horno-row label { margin: 0; flex: 1; font-size: 11px; }
+.horno-row input { width: 60px; text-align: center; }
+
+/* ─── STATS BAR ─── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--steel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+.stat-card .val {
+  font-family: var(--mono); font-size: 26px; font-weight: 600;
+  color: var(--accent); line-height: 1;
+}
+.stat-card .lbl { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ─── TABS ─── */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.tab {
+  padding: 8px 18px;
+  font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .15s;
+}
+.tab:hover { color: var(--white); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ─── TABLE ─── */
+.tbl-wrap { overflow: auto; max-height: 500px; border: 1px solid var(--line); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead { position: sticky; top: 0; z-index: 10; }
+thead th {
+  background: var(--navy);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+thead th:hover { color: var(--white); }
+thead th.sort-asc::after  { content: ' ▲'; color: var(--accent); }
+thead th.sort-desc::after { content: ' ▼'; color: var(--accent); }
+tbody tr { border-bottom: 1px solid var(--line); transition: background .1s; }
+tbody tr:hover { background: rgba(255,255,255,.03); }
+tbody tr.delayed { background: rgba(232,160,32,.06); }
+td { padding: 8px 12px; color: var(--white); font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+td.muted { color: var(--muted); }
+.pill {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+}
+.pill-blue   { background: rgba(0,64,128,.5); color: #80b4e8; border: 1px solid rgba(0,64,128,.8); }
+.pill-amber  { background: rgba(232,160,32,.2); color: var(--accent2); border: 1px solid rgba(232,160,32,.4); }
+.pill-green  { background: rgba(26,171,90,.2); color: #5fe0a0; border: 1px solid rgba(26,171,90,.4); }
+.pill-red    { background: rgba(208,48,48,.2); color: #f08080; border: 1px solid rgba(208,48,48,.4); }
+
+/* ─── CAPACITY BARS ─── */
+.cap-bar { background: var(--line); border-radius: 2px; height: 6px; width: 80px; display: inline-block; vertical-align: middle; overflow: hidden; }
+.cap-bar-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+
+/* ─── NO ASIGNADOS ─── */
+.no-asig-item {
+  background: var(--navy);
+  border: 1px solid rgba(208,48,48,.3);
+  border-left: 3px solid var(--red);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  font-family: var(--mono); font-size: 11px;
+}
+.no-asig-item .of { color: var(--accent); font-weight: 600; font-size: 12px; }
+.no-asig-item .detail { color: var(--muted); margin-top: 3px; }
+
+/* ─── ALERTS ─── */
+.alert {
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 12px;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.alert-warn  { background: rgba(232,160,32,.1); border: 1px solid rgba(232,160,32,.3); color: var(--accent2); }
+.alert-err   { background: rgba(208,48,48,.1);  border: 1px solid rgba(208,48,48,.3);  color: #f08080; }
+.alert-ok    { background: rgba(26,171,90,.1);  border: 1px solid rgba(26,171,90,.3);  color: #5fe0a0; }
+
+/* ─── PROGRESS ─── */
+.progress-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(10,22,40,.85);
+  z-index: 999;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+}
+.progress-overlay.show { display: flex; }
+.progress-spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+/* ─── WELCOME ─── */
+.welcome {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 400px; gap: 12px; text-align: center;
+}
+.welcome .big-icon { font-size: 56px; opacity: .25; }
+.welcome h2 { font-size: 18px; color: var(--muted); font-weight: 400; }
+.welcome p  { font-size: 13px; color: var(--muted); max-width: 380px; line-height: 1.6; opacity: .7; }
+
+/* ─── VAGONETAS PREVIEW ─── */
+.vag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.vag-card {
+  background: var(--navy);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+}
+.vag-card .vag-title {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent);
+  margin-bottom: 8px;
+}
+.vag-piso {
+  background: var(--steel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  font-family: var(--mono); font-size: 10px;
+}
+.vag-piso .piso-title { color: var(--muted); margin-bottom: 3px; }
+.vag-piso .piso-piece { color: var(--white); padding-left: 8px; }
+
+/* ─── MISC ─── */
+.flex-row  { display: flex; gap: 8px; }
+.mt4 { margin-top: 4px; }
+.mt8 { margin-top: 8px; }
+.mt12 { margin-top: 12px; }
+.mt16 { margin-top: 16px; }
+.text-muted { color: var(--muted); }
+.text-mono  { font-family: var(--mono); }
+.hidden { display: none; }
+hr { border: none; border-top: 1px solid var(--line); margin: 12px 0; }
+
+.filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-bar input, .filter-bar select { width: auto; flex: 1; min-width: 100px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-area">
+    <div class="logo-mark">HO</div>
+    <div class="logo-text">
+      <h1>Hornos Optimizador Industrial</h1>
+      <p>POINSA S.A. — Sistema de gestión de hornadas</p>
+    </div>
+  </div>
+  <div class="header-meta">
+    Desarrollado por Manuel Jiménez González<br>
+    <span id="clock" style="color:var(--accent)"></span>
+  </div>
+</header>
+
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-spinner"></div>
+  <div class="progress-text" id="progressText">Calculando asignaciones...</div>
+</div>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- 1. Cargar CSV -->
+    <div class="card">
+      <div class="card-header"><div class="badge">01</div><span>Archivo de piezas</span></div>
+      <div class="card-body">
+        <div class="file-drop" id="fileDrop">
+          <input type="file" id="fileInput" accept=".csv,.txt">
+          <div class="icon">📄</div>
+          <p>Arrastra el CSV aquí<br>o haz clic para seleccionar</p>
+          <div class="filename hidden" id="fileName"></div>
+        </div>
+        <div class="mt8">
+          <button class="btn btn-ghost" onclick="descargarPlantilla()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Descargar plantilla Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Configurar Hornos -->
+    <div class="card">
+      <div class="card-header"><div class="badge">02</div><span>Configuración de hornos</span></div>
+      <div class="card-body">
+        <label>Hornos a utilizar (ej: 4,7,10)</label>
+        <div class="flex-row">
+          <input type="text" id="hornosInput" placeholder="4,7" style="flex:1">
+          <button class="btn btn-primary" style="width:auto;padding:8px 12px" onclick="agregarHornos()">✓</button>
+        </div>
+        <div id="hornosConfig" class="mt8"></div>
+      </div>
+    </div>
+
+    <!-- 3. Ejecutar -->
+    <div class="card">
+      <div class="card-header"><div class="badge">03</div><span>Ejecutar</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-accent" id="btnEjecutar" disabled onclick="ejecutar()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Ejecutar asignación
+        </button>
+        <button class="btn btn-green hidden" id="btnExcel" onclick="exportarExcel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Exportar Excel
+        </button>
+        <button class="btn btn-ghost hidden" id="btnReset" onclick="resetear()">
+          ↺ Nuevo cálculo
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de hornos disponibles -->
+    <div class="card">
+      <div class="card-header"><div class="badge">ℹ</div><span>Vagonetas disponibles</span></div>
+      <div class="card-body" style="padding:8px">
+        <table style="font-size:10px">
+          <thead><tr>
+            <th style="padding:5px 8px">Horno</th>
+            <th style="padding:5px 8px">Vag.</th>
+            <th style="padding:5px 8px">Alt.(mm)</th>
+            <th style="padding:5px 8px">Ancho</th>
+            <th style="padding:5px 8px">Prof.</th>
+            <th style="padding:5px 8px">Color</th>
+          </tr></thead>
+          <tbody id="vagTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div id="welcomeScreen" class="welcome">
+      <div class="big-icon">🔥</div>
+      <h2>Optimizador de Hornadas</h2>
+      <p>Carga el archivo CSV con las órdenes de fabricación, configura los hornos y ejecuta la asignación automática.</p>
+    </div>
+
+    <div id="resultsScreen" class="hidden">
+      <!-- Stats -->
+      <div class="stats-bar" id="statsBar"></div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" onclick="setTab(0)">Asignaciones</div>
+        <div class="tab" onclick="setTab(1)">Vista por Horno</div>
+        <div class="tab" onclick="setTab(2)">No asignados</div>
+        <div class="tab" onclick="setTab(3)">Capacidades</div>
+      </div>
+
+      <!-- Tab 0: Tabla de asignaciones -->
+      <div class="tab-content active" id="tab0">
+        <div class="filter-bar">
+          <input type="text" id="filterOf" placeholder="Filtrar por OF..." oninput="filtrarTabla()">
+          <select id="filterHorno" onchange="filtrarTabla()">
+            <option value="">Todos los hornos</option>
+          </select>
+          <select id="filterSemana" onchange="filtrarTabla()">
+            <option value="">Todas las semanas</option>
+          </select>
+          <input type="text" id="filterDesign" placeholder="Filtrar modelo..." oninput="filtrarTabla()">
+        </div>
+        <div class="tbl-wrap">
+          <table id="mainTable">
+            <thead><tr>
+              <th onclick="sortTable(0)">Semana</th>
+              <th onclick="sortTable(1)">Horno</th>
+              <th onclick="sortTable(2)">Vagoneta</th>
+              <th onclick="sortTable(3)">Piso</th>
+              <th onclick="sortTable(4)">Hornada</th>
+              <th onclick="sortTable(5)">OF</th>
+              <th onclick="sortTable(6)">Modelo/Design</th>
+              <th onclick="sortTable(7)">Q Asignada</th>
+              <th onclick="sortTable(8)">Alt. piso (mm)</th>
+              <th onclick="sortTable(9)">Peso piso (kg)</th>
+              <th onclick="sortTable(10)">Vol. piso (m³)</th>
+              <th onclick="sortTable(11)">% Cap.</th>
+            </tr></thead>
+            <tbody id="mainTbody"></tbody>
+          </table>
+        </div>
+        <p class="text-muted mt8" id="tableCount" style="font-size:11px;font-family:var(--mono)"></p>
+      </div>
+
+      <!-- Tab 1: Vista por horno -->
+      <div class="tab-content" id="tab1">
+        <div id="hornoView"></div>
+      </div>
+
+      <!-- Tab 2: No asignados -->
+      <div class="tab-content" id="tab2">
+        <div id="noAsigView"></div>
+      </div>
+
+      <!-- Tab 3: Capacidades -->
+      <div class="tab-content" id="tab3">
+        <div class="tbl-wrap">
+          <table id="capTable">
+            <thead><tr>
+              <th>Horno</th>
+              <th>Vagoneta</th>
+              <th>Hornada</th>
+              <th>Semana</th>
+              <th>Pisos usados</th>
+              <th>Vol. usado (m³)</th>
+              <th>Vol. total (m³)</th>
+              <th>% Ocupación</th>
+              <th>Piezas totales</th>
+            </tr></thead>
+            <tbody id="capTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// DATOS FIJOS DE VAGONETAS
+// ════════════════════════════════════════════
+const VAG_DATA = [
+  {Horno:4,  Vagoneta:1, Altura_vag:160, Ancho:97.3,  Prof:148.3, Colores:['Todos']},
+  {Horno:4,  Vagoneta:2, Altura_vag:160, Ancho:97.3,  Prof:194,   Colores:['Todos']},
+  {Horno:5,  Vagoneta:1, Altura_vag:160, Ancho:92.5,  Prof:138.5, Colores:['Todos']},
+  {Horno:5,  Vagoneta:2, Altura_vag:160, Ancho:95,    Prof:185,   Colores:['Todos']},
+  {Horno:6,  Vagoneta:1, Altura_vag:155, Ancho:97,    Prof:145,   Colores:['Todos']},
+  {Horno:6,  Vagoneta:2, Altura_vag:155, Ancho:97,    Prof:184,   Colores:['Todos']},
+  {Horno:7,  Vagoneta:1, Altura_vag:205, Ancho:123.8, Prof:177.8, Colores:['Todos']},
+  {Horno:7,  Vagoneta:2, Altura_vag:205, Ancho:123.8, Prof:177.8, Colores:['Todos']},
+  {Horno:7,  Vagoneta:3, Altura_vag:205, Ancho:123.8, Prof:177.8, Colores:['Todos']},
+  {Horno:8,  Vagoneta:1, Altura_vag:250, Ancho:118,   Prof:145.5, Colores:['M']},
+  {Horno:8,  Vagoneta:2, Altura_vag:250, Ancho:118,   Prof:145.5, Colores:['M']},
+  {Horno:9,  Vagoneta:1, Altura_vag:250, Ancho:146,   Prof:110,   Colores:['M']},
+  {Horno:9,  Vagoneta:2, Altura_vag:250, Ancho:146,   Prof:110,   Colores:['M']},
+  {Horno:10, Vagoneta:1, Altura_vag:215, Ancho:123.8, Prof:250,   Colores:['Todos']},
+  {Horno:11, Vagoneta:1, Altura_vag:250, Ancho:146,   Prof:110,   Colores:['Todos']},
+  {Horno:11, Vagoneta:2, Altura_vag:250, Ancho:146,   Prof:110,   Colores:['Todos']},
+];
+
+const TOLERANCIA_ALTURA = 20;
+const MAX_PISOS = 3;
+const MAX_OF_POR_PISO = 2;
+
+// ════════════════════════════════════════════
+// ESTADO GLOBAL
+// ════════════════════════════════════════════
+let state = {
+  csvData: null,
+  hornos: [],          // [4, 7]
+  frecuencias: {},     // {4: 2, 7: 1}
+  resultados: {},      // semana -> [filas]
+  noAsignados: [],
+  allRows: [],
+  filteredRows: [],
+  sortCol: 0,
+  sortAsc: true,
+};
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  renderVagTable();
+  startClock();
+  setupFileDrop();
+});
+
+function startClock() {
+  const el = document.getElementById('clock');
+  setInterval(() => {
+    el.textContent = new Date().toLocaleString('es-ES', {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  }, 1000);
+}
+
+function renderVagTable() {
+  const tb = document.getElementById('vagTable');
+  tb.innerHTML = VAG_DATA.map(v => `
+    <tr>
+      <td class="text-mono" style="color:var(--accent)">H${v.Horno}</td>
+      <td class="text-mono muted">${v.Vagoneta}</td>
+      <td class="text-mono">${v.Altura_vag}</td>
+      <td class="text-mono">${v.Ancho}</td>
+      <td class="text-mono">${v.Prof}</td>
+      <td><span class="pill ${v.Colores[0]==='Todos'?'pill-green':'pill-amber'}">${v.Colores[0]}</span></td>
+    </tr>`).join('');
+}
+
+// ════════════════════════════════════════════
+// FILE UPLOAD
+// ════════════════════════════════════════════
+function setupFileDrop() {
+  const drop = document.getElementById('fileDrop');
+  const input = document.getElementById('fileInput');
+
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) procesarArchivo(file);
+  });
+  input.addEventListener('change', () => {
+    if (input.files[0]) procesarArchivo(input.files[0]);
+  });
+}
+
+function procesarArchivo(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const raw = e.target.result;
+    try {
+      const df = parsearCSV(raw);
+      state.csvData = df;
+      document.getElementById('fileName').textContent = '✓ ' + file.name;
+      document.getElementById('fileName').classList.remove('hidden');
+      checkReady();
+      mostrarAlerta('ok', `✓ Archivo cargado: ${df.length} filas válidas encontradas.`);
+    } catch(err) {
+      mostrarAlerta('err', '✗ Error al leer el archivo: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function parsearCSV(raw) {
+  // Detectar separador
+  const firstLine = raw.split('\n')[0];
+  let sep = ';';
+  if ((firstLine.match(/,/g)||[]).length > (firstLine.match(/;/g)||[]).length) sep = ',';
+
+  const lines = raw.trim().split('\n').map(l => l.replace(/\r/g,''));
+  const headers = lines[0].split(sep).map(h => h.trim().replace(/^["']|["']$/g,''));
+
+  const required = ['OF','Modelo','Altura','Volumen','Color','Cantidad','Semana','KG','H'];
+  const missing = required.filter(r => !headers.includes(r));
+  if (missing.length) throw new Error(`Faltan columnas: ${missing.join(', ')}`);
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = splitCSVLine(lines[i], sep);
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (vals[idx]||'').trim().replace(/^["']|["']$/g,''); });
+    
+    const parseNum = s => parseFloat(String(s).replace(',','.')) || 0;
+    const vol  = parseNum(obj.Volumen);
+    const alt  = parseNum(obj.Altura);
+    const cant = parseInt(obj.Cantidad) || 0;
+    if (vol <= 0 || alt <= 0 || cant <= 0) continue;
+
+    rows.push({
+      OF:    String(obj.OF || 'SIN_OF'),
+      Modelo:String(obj.Modelo || 'SIN_MODELO'),
+      Color: String(obj.Color||'M').trim().toUpperCase(),
+      Altura:alt,
+      Volumen_unit: vol,
+      KG_unit:  parseNum(obj.KG),
+      H:        parseNum(obj.H),
+      Cantidad: cant,
+      Semana_original: parseInt(obj.Semana) || 1,
+    });
+  }
+  if (!rows.length) throw new Error('No se encontraron filas válidas. Verifica los datos.');
+  return rows;
+}
+
+function splitCSVLine(line, sep) {
+  // Simple split respetando comillas
+  const result = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === sep && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ════════════════════════════════════════════
+// CONFIGURAR HORNOS
+// ════════════════════════════════════════════
+function agregarHornos() {
+  const txt = document.getElementById('hornosInput').value.trim();
+  if (!txt) { mostrarAlerta('err', 'Introduce al menos un número de horno.'); return; }
+  
+  const nums = txt.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+  const hornosValidos = [...new Set(VAG_DATA.map(v => v.Horno))];
+  const invalidos = nums.filter(n => !hornosValidos.includes(n));
+  if (invalidos.length) {
+    mostrarAlerta('err', `Hornos no válidos: ${invalidos.join(', ')}. Disponibles: ${hornosValidos.join(', ')}`);
+    return;
+  }
+
+  state.hornos = nums;
+  // Mantener frecuencias previas si existen
+  const container = document.getElementById('hornosConfig');
+  container.innerHTML = '<hr>' + nums.map(h => `
+    <div class="horno-row">
+      <span class="horno-badge">Horno ${h}</span>
+      <label>Hornadas/sem.</label>
+      <input type="number" id="freq_${h}" value="${state.frecuencias[h]||1}" min="1" max="50" onchange="actualizarFrecuencia(${h},this.value)">
+    </div>`).join('');
+  
+  // Inicializar frecuencias
+  nums.forEach(h => { if (!state.frecuencias[h]) state.frecuencias[h] = 1; });
+  checkReady();
+}
+
+function actualizarFrecuencia(h, val) {
+  state.frecuencias[h] = Math.max(1, parseInt(val)||1);
+}
+
+function checkReady() {
+  const ok = state.csvData && state.hornos.length > 0;
+  document.getElementById('btnEjecutar').disabled = !ok;
+}
+
+// ════════════════════════════════════════════
+// ALGORITMO DE ASIGNACIÓN
+// ════════════════════════════════════════════
+function ejecutar() {
+  // Leer frecuencias actuales del DOM
+  state.hornos.forEach(h => {
+    const inp = document.getElementById('freq_' + h);
+    if (inp) state.frecuencias[h] = Math.max(1, parseInt(inp.value)||1);
+  });
+
+  if (!state.csvData || !state.hornos.length) return;
+
+  document.getElementById('progressOverlay').classList.add('show');
+  document.getElementById('progressText').textContent = 'Calculando asignaciones...';
+
+  setTimeout(() => {
+    try {
+      const resultado = algoritmoAsignacion(state.csvData, state.hornos, state.frecuencias);
+      state.resultados  = resultado.resultados;
+      state.noAsignados = resultado.noAsignados;
+      state.allRows     = resultado.allRows;
+      state.filteredRows = [...state.allRows];
+
+      mostrarResultados();
+      document.getElementById('progressOverlay').classList.remove('show');
+    } catch(e) {
+      document.getElementById('progressOverlay').classList.remove('show');
+      mostrarAlerta('err', 'Error en la asignación: ' + e.message);
+      console.error(e);
+    }
+  }, 50);
+}
+
+function algoritmoAsignacion(piezasRaw, hornosSeleccionados, frecuencias) {
+  // Deep copy + ordenar por altura desc
+  let piezas = piezasRaw.map(p => ({...p, Cantidad: p.Cantidad}));
+  piezas.sort((a,b) => b.Altura - a.Altura || a.OF.localeCompare(b.OF));
+
+  // Agrupar por semana
+  const piezasPorSemana = {};
+  piezas.forEach(p => {
+    if (!piezasPorSemana[p.Semana_original]) piezasPorSemana[p.Semana_original] = [];
+    piezasPorSemana[p.Semana_original].push({...p});
+  });
+
+  const resultados = {};
+  const noAsignados = [];
+  const pendientesPorSemana = {};
+
+  const todasSemanas = Object.keys(piezasPorSemana).map(Number).sort((a,b)=>a-b);
+  const maxSemana = todasSemanas.length ? Math.max(...todasSemanas) : 0;
+
+  function crearVagonetas() {
+    const vags = [];
+    VAG_DATA.filter(v => hornosSeleccionados.includes(v.Horno)).forEach(v => {
+      const frec = frecuencias[v.Horno] || 1;
+      for (let rep = 0; rep < frec; rep++) {
+        vags.push({
+          Horno: v.Horno, Vagoneta: v.Vagoneta,
+          Altura_vag: v.Altura_vag, Ancho: v.Ancho, Prof: v.Prof,
+          Colores: v.Colores,
+          pisos: [], hornada: rep + 1
+        });
+      }
+    });
+    return vags;
+  }
+
+  function compatibleConHorno(pieza, vag) {
+    if (!vag.Colores.includes('Todos') && !vag.Colores.includes(pieza.Color)) return false;
+    if (pieza.H > 48 && [4,5,6].includes(vag.Horno)) return false;
+    return true;
+  }
+
+  for (let semanaActual = 1; semanaActual <= maxSemana; semanaActual++) {
+    let piezasAProcesar = [];
+
+    if (piezasPorSemana[semanaActual]) {
+      piezasPorSemana[semanaActual].forEach(p => piezasAProcesar.push({...p}));
+    }
+    for (let sa = 1; sa < semanaActual; sa++) {
+      if (pendientesPorSemana[sa]) {
+        pendientesPorSemana[sa].forEach(p => { if (p.Cantidad > 0) piezasAProcesar.push({...p}); });
+        delete pendientesPorSemana[sa];
+      }
+    }
+
+    if (!piezasAProcesar.length) continue;
+
+    piezasAProcesar.sort((a,b) => a.Semana_original - b.Semana_original || b.Altura - a.Altura || a.OF.localeCompare(b.OF));
+
+    const vags = crearVagonetas();
+    const pendientesSemanaActual = [];
+
+    for (const pieza of piezasAProcesar) {
+      while (pieza.Cantidad > 0) {
+        let asignado = false;
+
+        // 1. Intentar asignar a pisos existentes
+        for (const vag of vags) {
+          if (vag.pisos.length >= MAX_PISOS || !compatibleConHorno(pieza, vag)) continue;
+
+          const pisosOrdenados = [...vag.pisos].sort((pa,pb) => {
+            const aOf = pa.piezas.some(x => x.OF === pieza.OF) ? 0 : 1;
+            const bOf = pb.piezas.some(x => x.OF === pieza.OF) ? 0 : 1;
+            return aOf - bOf || Math.abs(pieza.Altura - pa.altura_piso) - Math.abs(pieza.Altura - pb.altura_piso);
+          });
+
+          for (const piso of pisosOrdenados) {
+            const ofsEnPiso = new Set(piso.piezas.map(x => x.OF));
+            if (ofsEnPiso.size >= MAX_OF_POR_PISO && !ofsEnPiso.has(pieza.OF)) continue;
+            if (Math.abs(pieza.Altura - piso.altura_piso) > TOLERANCIA_ALTURA) continue;
+
+            const volTotalPiso = (piso.altura_piso * vag.Ancho * vag.Prof) / 1e6;
+            const volLibre = volTotalPiso - piso.volumen_total;
+            if (volLibre <= 0) continue;
+
+            const maxPiezasVol = Math.floor(volLibre / pieza.Volumen_unit);
+            if (maxPiezasVol <= 0) continue;
+
+            const areaPiso  = vag.Ancho * vag.Prof;
+            const areaBase  = (pieza.Volumen_unit * 1e6) / pieza.Altura;
+            if (areaBase > areaPiso) continue;
+
+            const asignar = Math.min(pieza.Cantidad, maxPiezasVol);
+            piso.volumen_total += asignar * pieza.Volumen_unit;
+            piso.peso_total    += asignar * pieza.KG_unit;
+            piso.piezas.push({OF:pieza.OF, Modelo:pieza.Modelo, Cantidad:asignar, KG_unit:pieza.KG_unit, H:pieza.H, Semana_original:pieza.Semana_original});
+            pieza.Cantidad -= asignar;
+            asignado = true;
+            break;
+          }
+          if (asignado) break;
+        }
+
+        if (asignado) continue;
+
+        // 2. Crear nuevo piso
+        const candidatosVag = vags.filter(vag => {
+          if (vag.pisos.length >= MAX_PISOS || !compatibleConHorno(pieza, vag)) return false;
+          const altUsada = vag.pisos.reduce((s,p) => s + p.altura_piso, 0);
+          if (pieza.Altura > (vag.Altura_vag - 12 - altUsada)) return false;
+          const areaPiso = vag.Ancho * vag.Prof;
+          const areaBase = (pieza.Volumen_unit * 1e6) / pieza.Altura;
+          if (areaBase > areaPiso) return false;
+          const volMax = (pieza.Altura * vag.Ancho * vag.Prof) / 1e6;
+          return Math.floor(volMax / pieza.Volumen_unit) > 0;
+        });
+
+        if (candidatosVag.length) {
+          const vag = candidatosVag[0];
+          const capacidadVol  = (pieza.Altura * vag.Ancho * vag.Prof) / 1e6;
+          const capacidadArea = vag.Ancho * vag.Prof;
+
+          const candidatas = piezasAProcesar.filter(p => {
+            if (p.Cantidad <= 0) return false;
+            if (!compatibleConHorno(p, vag)) return false;
+            if (Math.abs(p.Altura - pieza.Altura) > TOLERANCIA_ALTURA) return false;
+            const aBase = (p.Volumen_unit * 1e6) / p.Altura;
+            return aBase <= capacidadArea;
+          });
+
+          const hRef = pieza.H;
+          candidatas.sort((a,b) => {
+            const aRet = a.Semana_original < pieza.Semana_original ? 0 : 1;
+            const bRet = b.Semana_original < pieza.Semana_original ? 0 : 1;
+            const aOf  = a.OF === pieza.OF ? 0 : 1;
+            const bOf  = b.OF === pieza.OF ? 0 : 1;
+            return aRet - bRet || aOf - bOf || Math.abs(a.H - hRef) - Math.abs(b.H - hRef);
+          });
+
+          const nuevoPiso = {numero: vag.pisos.length+1, color: pieza.Color, altura_piso: pieza.Altura, volumen_total:0, peso_total:0, piezas:[]};
+          let volAcum = 0;
+
+          for (const p of candidatas) {
+            if (volAcum >= capacidadVol) break;
+            const aBaseP   = (p.Volumen_unit * 1e6) / p.Altura;
+            const maxArea  = Math.floor(capacidadArea / aBaseP);
+            const maxVol   = Math.floor((capacidadVol - volAcum) / p.Volumen_unit);
+            const maxPos   = Math.min(p.Cantidad, maxArea, maxVol);
+            if (maxPos <= 0) continue;
+
+            nuevoPiso.piezas.push({OF:p.OF, Modelo:p.Modelo, Cantidad:maxPos, KG_unit:p.KG_unit, H:p.H, Semana_original:p.Semana_original});
+            nuevoPiso.volumen_total += maxPos * p.Volumen_unit;
+            nuevoPiso.peso_total    += maxPos * p.KG_unit;
+            p.Cantidad -= maxPos;
+            volAcum    += maxPos * p.Volumen_unit;
+          }
+
+          vag.pisos.push(nuevoPiso);
+          asignado = true;
+        }
+
+        if (!asignado) {
+          if (pieza.Cantidad > 0) pendientesSemanaActual.push({...pieza});
+          break;
+        }
+      }
+    }
+
+    if (pendientesSemanaActual.length) pendientesPorSemana[semanaActual] = pendientesSemanaActual;
+
+    // Recopilar filas de esta semana
+    const filas = [];
+    for (const vag of vags) {
+      for (const piso of vag.pisos) {
+        for (const p of piso.piezas) {
+          filas.push({
+            Semana_asignada: semanaActual,
+            Semana_original: p.Semana_original,
+            Horno: vag.Horno, Vagoneta: vag.Vagoneta,
+            Piso: piso.numero, Hornada: vag.hornada,
+            OF: p.OF, Design: p.Modelo,
+            Q_asignada: p.Cantidad,
+            Altura_piso: piso.altura_piso,
+            Peso_piso:   +piso.peso_total.toFixed(3),
+            Volumen_piso:+piso.volumen_total.toFixed(9),
+            // capacidad
+            Vag_Ancho: vag.Ancho, Vag_Prof: vag.Prof,
+          });
+        }
+      }
+    }
+    resultados[semanaActual] = filas;
+  }
+
+  // Pendientes finales → no asignados
+  Object.entries(pendientesPorSemana).forEach(([semana, pendientes]) => {
+    pendientes.forEach(p => {
+      if (p.Cantidad > 0) {
+        noAsignados.push({OF:p.OF, Modelo:p.Modelo, Altura:p.Altura, Volumen:p.Volumen_unit,
+          Color:p.Color, KG:p.KG_unit, H:p.H, Cantidad_no_asignada:p.Cantidad,
+          Semana_original:p.Semana_original, Semana_intentada:+semana});
+      }
+    });
+  });
+
+  // Construir allRows
+  const allRows = [];
+  Object.values(resultados).forEach(filas => filas.forEach(f => allRows.push(f)));
+  allRows.sort((a,b) => a.Semana_asignada - b.Semana_asignada || a.Horno - b.Horno || a.Hornada - b.Hornada || a.Vagoneta - b.Vagoneta || a.Piso - b.Piso);
+
+  return {resultados, noAsignados, allRows};
+}
+
+// ════════════════════════════════════════════
+// MOSTRAR RESULTADOS
+// ════════════════════════════════════════════
+function mostrarResultados() {
+  document.getElementById('welcomeScreen').classList.add('hidden');
+  document.getElementById('resultsScreen').classList.remove('hidden');
+  document.getElementById('btnExcel').classList.remove('hidden');
+  document.getElementById('btnReset').classList.remove('hidden');
+
+  renderStats();
+  renderMainTable();
+  renderHornoView();
+  renderNoAsignados();
+  renderCapacidades();
+  poblarFiltros();
+}
+
+function renderStats() {
+  const rows = state.allRows;
+  const semanas = new Set(rows.map(r => r.Semana_asignada));
+  const totalQ  = rows.reduce((s,r) => s+r.Q_asignada, 0);
+  const delayed = rows.filter(r => r.Semana_asignada !== r.Semana_original).length;
+  const pct     = rows.length ? ((rows.length - delayed) / rows.length * 100).toFixed(1) : 0;
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><div class="val">${rows.length}</div><div class="lbl">Asignaciones</div></div>
+    <div class="stat-card"><div class="val">${totalQ.toLocaleString()}</div><div class="lbl">Piezas asignadas</div></div>
+    <div class="stat-card"><div class="val">${semanas.size}</div><div class="lbl">Semanas</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--red)">${state.noAsignados.length}</div><div class="lbl">No asignadas</div></div>
+    <div class="stat-card"><div class="val" style="color:${pct>=95?'var(--green)':'var(--yellow)'}">${pct}%</div><div class="lbl">En plazo</div></div>
+  `;
+}
+
+function renderMainTable() {
+  renderTbody(state.filteredRows);
+}
+
+function renderTbody(rows) {
+  const tb = document.getElementById('mainTbody');
+  tb.innerHTML = rows.map(r => {
+    const delayed = r.Semana_asignada !== r.Semana_original;
+    const semInfo = delayed ? `${r.Semana_asignada} <span class="pill pill-amber">Orig:${r.Semana_original}</span>` : r.Semana_asignada;
+    const volMax  = (r.Altura_piso * r.Vag_Ancho * r.Vag_Prof) / 1e6;
+    const pctCap  = volMax > 0 ? Math.min(100, r.Volumen_piso / volMax * 100) : 0;
+    const barColor = pctCap > 80 ? 'var(--green)' : pctCap > 50 ? 'var(--accent)' : 'var(--muted)';
+    return `<tr class="${delayed?'delayed':''}">
+      <td>${semInfo}</td>
+      <td><span class="pill pill-blue">H${r.Horno}</span></td>
+      <td class="muted">${r.Vagoneta}</td>
+      <td class="muted">${r.Piso}</td>
+      <td class="muted">${r.Hornada}</td>
+      <td style="color:var(--accent);font-weight:600">${r.OF}</td>
+      <td>${r.Design}</td>
+      <td style="text-align:right;color:var(--green)">${r.Q_asignada}</td>
+      <td class="muted">${r.Altura_piso}</td>
+      <td class="muted">${r.Peso_piso.toFixed(3)}</td>
+      <td class="muted">${r.Volumen_piso.toFixed(6)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="cap-bar"><div class="cap-bar-fill" style="width:${pctCap.toFixed(1)}%;background:${barColor}"></div></div>
+          <span class="muted">${pctCap.toFixed(0)}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tableCount').textContent = `Mostrando ${rows.length} de ${state.allRows.length} registros`;
+}
+
+function renderHornoView() {
+  const container = document.getElementById('hornoView');
+  // Agrupar por semana > horno > hornada > vagoneta
+  const semanas = [...new Set(state.allRows.map(r => r.Semana_asignada))].sort((a,b)=>a-b);
+  
+  let html = '';
+  for (const sem of semanas) {
+    const filasSem = state.allRows.filter(r => r.Semana_asignada === sem);
+    const hornos   = [...new Set(filasSem.map(r => r.Horno))].sort((a,b)=>a-b);
+    html += `<h3 style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px;margin-top:16px;text-transform:uppercase;letter-spacing:.1em">── Semana ${sem}</h3>`;
+    
+    for (const h of hornos) {
+      const filasH = filasSem.filter(r => r.Horno === h);
+      const hornadas = [...new Set(filasH.map(r => r.Hornada))].sort((a,b)=>a-b);
+      html += `<h4 style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:8px">HORNO ${h}</h4>`;
+      html += '<div class="vag-grid">';
+      
+      for (const hornada of hornadas) {
+        const filasHornada = filasH.filter(r => r.Hornada === hornada);
+        const vagonetas = [...new Set(filasHornada.map(r => r.Vagoneta))].sort((a,b)=>a-b);
+        
+        for (const vag of vagonetas) {
+          const filasVag = filasHornada.filter(r => r.Vagoneta === vag);
+          const pisos = [...new Set(filasVag.map(r => r.Piso))].sort((a,b)=>a-b);
+          const totalQ = filasVag.reduce((s,r)=>s+r.Q_asignada,0);
+          
+          html += `<div class="vag-card">
+            <div class="vag-title">H${h} · Vag ${vag} · Hornada ${hornada} <span class="pill pill-green" style="float:right">${totalQ} pzas</span></div>`;
+          
+          for (const piso of pisos) {
+            const filasP = filasVag.filter(r => r.Piso === piso);
+            const volMax = (filasP[0].Altura_piso * filasP[0].Vag_Ancho * filasP[0].Vag_Prof) / 1e6;
+            const volUsado = filasP[0].Volumen_piso;
+            const pct = volMax>0 ? Math.min(100, volUsado/volMax*100) : 0;
+            
+            html += `<div class="vag-piso">
+              <div class="piso-title">Piso ${piso} · Alt:${filasP[0].Altura_piso}mm · ${pct.toFixed(0)}% cap.
+                <div class="cap-bar" style="width:100%;margin-top:3px"><div class="cap-bar-fill" style="width:${pct}%;background:${pct>80?'var(--green)':pct>50?'var(--accent)':'var(--muted)'}"></div></div>
+              </div>`;
+            filasP.forEach(f => {
+              html += `<div class="piso-piece">→ OF ${f.OF} · ${f.Design} · <span style="color:var(--green)">${f.Q_asignada} ud.</span></div>`;
+            });
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+      }
+      html += '</div>';
+    }
+  }
+  container.innerHTML = html;
+}
+
+function renderNoAsignados() {
+  const container = document.getElementById('noAsigView');
+  if (!state.noAsignados.length) {
+    container.innerHTML = '<div class="alert alert-ok">✅ Todas las piezas fueron asignadas correctamente.</div>';
+    return;
+  }
+  
+  // Agrupar por OF+Modelo
+  const resumen = {};
+  state.noAsignados.forEach(item => {
+    const key = `${item.OF}||${item.Modelo}||${item.Altura}||${item.Color}`;
+    if (!resumen[key]) resumen[key] = {OF:item.OF, Modelo:item.Modelo, Altura:item.Altura, Color:item.Color, total:0, semanas:new Set(), items:[]};
+    resumen[key].total += item.Cantidad_no_asignada;
+    resumen[key].semanas.add(item.Semana_original);
+    resumen[key].items.push(item);
+  });
+
+  container.innerHTML = `<div class="alert alert-err" style="margin-bottom:16px">⚠ ${state.noAsignados.length} lotes no pudieron asignarse. Posibles causas: altura superior a la vagoneta, color incompatible con los hornos seleccionados, o capacidad insuficiente.</div>` +
+    Object.values(resumen).map(r => `
+      <div class="no-asig-item">
+        <div class="of">OF ${r.OF} &nbsp;·&nbsp; ${r.Modelo}</div>
+        <div class="detail">
+          Altura: ${r.Altura}mm &nbsp;|&nbsp; Color: ${r.Color} &nbsp;|&nbsp;
+          Cantidad no asignada: <strong style="color:var(--red)">${r.total}</strong> &nbsp;|&nbsp;
+          Semanas originales: ${[...r.semanas].sort().join(', ')}
+        </div>
+      </div>`).join('');
+}
+
+function renderCapacidades() {
+  // Construir tabla de capacidad por vagoneta
+  const grupos = {};
+  state.allRows.forEach(r => {
+    const key = `${r.Semana_asignada}|${r.Horno}|${r.Vagoneta}|${r.Hornada}`;
+    if (!grupos[key]) grupos[key] = {Semana:r.Semana_asignada, Horno:r.Horno, Vagoneta:r.Vagoneta, Hornada:r.Hornada, pisos:new Set(), volUsado:0, totalQ:0, rows:[]};
+    grupos[key].pisos.add(r.Piso);
+    grupos[key].rows.push(r);
+    grupos[key].totalQ += r.Q_asignada;
+  });
+
+  // Calcular volumen total de vagoneta
+  const tb = document.getElementById('capTbody');
+  tb.innerHTML = Object.values(grupos).map(g => {
+    const vagInfo = VAG_DATA.find(v => v.Horno===g.Horno && v.Vagoneta===g.Vagoneta);
+    if (!vagInfo) return '';
+    // volumen total = altura_vag * ancho * prof / 1e6
+    const volTotal = (vagInfo.Altura_vag * vagInfo.Ancho * vagInfo.Prof) / 1e6;
+    // vol usado = suma de vol por piso
+    const pisoVols = {};
+    g.rows.forEach(r => {
+      if (!pisoVols[r.Piso]) pisoVols[r.Piso] = 0;
+      pisoVols[r.Piso] = r.Volumen_piso; // ya es el total del piso
+    });
+    const volUsado = Object.values(pisoVols).reduce((s,v)=>s+v,0);
+    const pct = volTotal>0 ? Math.min(100, volUsado/volTotal*100) : 0;
+    const color = pct>80?'var(--green)':pct>50?'var(--accent)':'var(--red)';
+    return `<tr>
+      <td><span class="pill pill-blue">H${g.Horno}</span></td>
+      <td class="muted">${g.Vagoneta}</td>
+      <td class="muted">${g.Hornada}</td>
+      <td class="muted">${g.Semana}</td>
+      <td class="muted">${g.pisos.size} / ${MAX_PISOS}</td>
+      <td class="muted">${volUsado.toFixed(6)}</td>
+      <td class="muted">${volTotal.toFixed(6)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="cap-bar" style="width:100px"><div class="cap-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+          <span style="color:${color};font-family:var(--mono)">${pct.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td style="color:var(--green);text-align:right">${g.totalQ}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// FILTROS Y ORDEN
+// ════════════════════════════════════════════
+function poblarFiltros() {
+  const hornos  = [...new Set(state.allRows.map(r => r.Horno))].sort((a,b)=>a-b);
+  const semanas = [...new Set(state.allRows.map(r => r.Semana_asignada))].sort((a,b)=>a-b);
+  
+  const selH = document.getElementById('filterHorno');
+  selH.innerHTML = '<option value="">Todos los hornos</option>' + hornos.map(h => `<option value="${h}">Horno ${h}</option>`).join('');
+  
+  const selS = document.getElementById('filterSemana');
+  selS.innerHTML = '<option value="">Todas las semanas</option>' + semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+}
+
+function filtrarTabla() {
+  const of    = document.getElementById('filterOf').value.toLowerCase();
+  const horno = document.getElementById('filterHorno').value;
+  const sem   = document.getElementById('filterSemana').value;
+  const des   = document.getElementById('filterDesign').value.toLowerCase();
+
+  state.filteredRows = state.allRows.filter(r =>
+    (!of    || r.OF.toLowerCase().includes(of)) &&
+    (!horno || r.Horno == horno) &&
+    (!sem   || r.Semana_asignada == sem) &&
+    (!des   || r.Design.toLowerCase().includes(des))
+  );
+  renderTbody(state.filteredRows);
+}
+
+let sortState = {col: -1, asc: true};
+function sortTable(col) {
+  if (sortState.col === col) sortState.asc = !sortState.asc;
+  else { sortState.col = col; sortState.asc = true; }
+
+  const keys = ['Semana_asignada','Horno','Vagoneta','Piso','Hornada','OF','Design','Q_asignada','Altura_piso','Peso_piso','Volumen_piso','_cap'];
+  const key = keys[col];
+  
+  state.filteredRows.sort((a,b) => {
+    let va = a[key], vb = b[key];
+    if (key==='_cap') {
+      va = a.Volumen_piso / ((a.Altura_piso*a.Vag_Ancho*a.Vag_Prof)/1e6||1);
+      vb = b.Volumen_piso / ((b.Altura_piso*b.Vag_Ancho*b.Vag_Prof)/1e6||1);
+    }
+    if (typeof va === 'string') va = va.toLowerCase(), vb = vb.toLowerCase();
+    return sortState.asc ? (va>vb?1:va<vb?-1:0) : (va<vb?1:va>vb?-1:0);
+  });
+
+  // Actualizar cabeceras
+  document.querySelectorAll('#mainTable thead th').forEach((th,i) => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (i===col) th.classList.add(sortState.asc?'sort-asc':'sort-desc');
+  });
+  renderTbody(state.filteredRows);
+}
+
+// ════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════
+function setTab(idx) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-content').forEach((tc,i) => tc.classList.toggle('active', i===idx));
+}
+
+// ════════════════════════════════════════════
+// EXPORT EXCEL
+// ════════════════════════════════════════════
+function exportarExcel() {
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Asignaciones
+    const rows1 = state.allRows.map(r => ({
+      'Semana asignada': r.Semana_asignada,
+      'Semana original': r.Semana_original,
+      'Horno': r.Horno,
+      'Vagoneta': r.Vagoneta,
+      'Piso': r.Piso,
+      'Hornada': r.Hornada,
+      'OF': r.OF,
+      'Design/Modelo': r.Design,
+      'Q asignada': r.Q_asignada,
+      'Altura piso (mm)': r.Altura_piso,
+      'Peso piso (kg)': r.Peso_piso,
+      'Volumen piso (m³)': r.Volumen_piso,
+    }));
+    rows1.push({});
+    rows1.push({'Semana asignada': `Generado por: Manuel Jiménez González | POINSA S.A. | ${new Date().toLocaleString('es-ES')}`});
+    const ws1 = XLSX.utils.json_to_sheet(rows1);
+    aplicarEstilosExcel(ws1, rows1.length);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Asignaciones');
+
+    // Hoja 2: No asignados
+    if (state.noAsignados.length) {
+      const ws2 = XLSX.utils.json_to_sheet(state.noAsignados.map(n => ({
+        'OF': n.OF, 'Modelo': n.Modelo, 'Altura (mm)': n.Altura,
+        'Volumen unit.': n.Volumen, 'Color': n.Color, 'KG unit.': n.KG, 'H cocción': n.H,
+        'Cant. no asignada': n.Cantidad_no_asignada,
+        'Semana original': n.Semana_original, 'Semana intentada': n.Semana_intentada,
+      })));
+      XLSX.utils.book_append_sheet(wb, ws2, 'No_asignados');
+    }
+
+    // Hoja 3: Capacidades
+    const capRows = [];
+    const grupos = {};
+    state.allRows.forEach(r => {
+      const key = `${r.Semana_asignada}|${r.Horno}|${r.Vagoneta}|${r.Hornada}`;
+      if (!grupos[key]) grupos[key] = {Semana:r.Semana_asignada, Horno:r.Horno, Vagoneta:r.Vagoneta, Hornada:r.Hornada, pisos:new Set(), rows:[], totalQ:0};
+      grupos[key].pisos.add(r.Piso); grupos[key].rows.push(r); grupos[key].totalQ += r.Q_asignada;
+    });
+    Object.values(grupos).forEach(g => {
+      const vagInfo = VAG_DATA.find(v => v.Horno===g.Horno && v.Vagoneta===g.Vagoneta);
+      if (!vagInfo) return;
+      const volTotal = (vagInfo.Altura_vag * vagInfo.Ancho * vagInfo.Prof) / 1e6;
+      const pisoVols = {};
+      g.rows.forEach(r => { pisoVols[r.Piso] = r.Volumen_piso; });
+      const volUsado = Object.values(pisoVols).reduce((s,v)=>s+v,0);
+      capRows.push({'Semana':g.Semana,'Horno':g.Horno,'Vagoneta':g.Vagoneta,'Hornada':g.Hornada,
+        'Pisos usados':g.pisos.size,'Vol. usado (m³)':+volUsado.toFixed(6),'Vol. total (m³)':+volTotal.toFixed(6),
+        '% Ocupación':+(volUsado/volTotal*100).toFixed(2),'Piezas totales':g.totalQ});
+    });
+    const ws3 = XLSX.utils.json_to_sheet(capRows);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Capacidades');
+
+    XLSX.writeFile(wb, `Hornadas_POINSA_${fechaArchivo()}.xlsx`);
+  } catch(e) {
+    mostrarAlerta('err', 'Error al exportar: ' + e.message);
+  }
+}
+
+function aplicarEstilosExcel(ws, nRows) {
+  // Ancho de columnas
+  ws['!cols'] = [{wch:16},{wch:14},{wch:8},{wch:9},{wch:7},{wch:9},{wch:14},{wch:20},{wch:12},{wch:16},{wch:14},{wch:16}];
+}
+
+function fechaArchivo() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ════════════════════════════════════════════
+// PLANTILLA EXCEL
+// ════════════════════════════════════════════
+function descargarPlantilla() {
+  const wb = XLSX.utils.book_new();
+
+  // Hoja de datos
+  const ejemplo = [
+    {OF:'100001', Modelo:'PAVIMENTO_60X60', Altura:10, Volumen:0.0036, Color:'M', Cantidad:50, Semana:1, KG:2.5, H:24},
+    {OF:'100002', Modelo:'REVESTIMIENTO_30X60', Altura:8, Volumen:0.00144, Color:'B', Cantidad:120, Semana:1, KG:1.8, H:20},
+    {OF:'100003', Modelo:'GRES_45X45', Altura:9, Volumen:0.002025, Color:'M', Cantidad:80, Semana:2, KG:2.1, H:36},
+  ];
+  const ws = XLSX.utils.json_to_sheet(ejemplo);
+  ws['!cols'] = [{wch:12},{wch:22},{wch:10},{wch:12},{wch:8},{wch:10},{wch:8},{wch:8},{wch:8}];
+
+  // Añadir validación de color (nota en celda)
+  // XLSX no soporta data validation en la lib community, pero añadimos notas
+  XLSX.utils.book_append_sheet(wb, ws, 'Piezas');
+
+  // Hoja de instrucciones
+  const instrRows = [
+    {Campo:'OF', Tipo:'Texto', Descripción:'Número de orden de fabricación (ej: 100001)', Obligatorio:'SÍ'},
+    {Campo:'Modelo', Tipo:'Texto', Descripción:'Nombre o código del modelo de pieza', Obligatorio:'SÍ'},
+    {Campo:'Altura', Tipo:'Número', Descripción:'Altura de la pieza en MILÍMETROS (ej: 10)', Obligatorio:'SÍ'},
+    {Campo:'Volumen', Tipo:'Número decimal', Descripción:'Volumen unitario de la pieza en m³ (ej: 0.0036)', Obligatorio:'SÍ'},
+    {Campo:'Color', Tipo:'Texto', Descripción:'M = Mono-cocción / B = Bi-cocción / Otros códigos', Obligatorio:'SÍ'},
+    {Campo:'Cantidad', Tipo:'Entero', Descripción:'Número de piezas de esta OF a hornear', Obligatorio:'SÍ'},
+    {Campo:'Semana', Tipo:'Entero', Descripción:'Semana de producción objetivo (1, 2, 3...)', Obligatorio:'SÍ'},
+    {Campo:'KG', Tipo:'Número decimal', Descripción:'Peso unitario de la pieza en kilogramos', Obligatorio:'SÍ'},
+    {Campo:'H', Tipo:'Número decimal', Descripción:'Horas de cocción requeridas (>48h = no apto hornos 4,5,6)', Obligatorio:'SÍ'},
+    {},{},
+    {Campo:'NOTAS', Tipo:'', Descripción:'• Separador CSV: punto y coma (;) o coma (,) — ambos aceptados'},
+    {Campo:'', Tipo:'', Descripción:'• Decimal: punto (.) o coma (,) — ambos aceptados'},
+    {Campo:'', Tipo:'', Descripción:'• Codificación: UTF-8 o Latin-1'},
+    {Campo:'', Tipo:'', Descripción:'• Filas con Altura=0, Volumen=0 o Cantidad=0 se ignoran'},
+    {Campo:'', Tipo:'', Descripción:'• Hornos 8 y 9: solo admiten color M (mono-cocción)'},
+    {Campo:'', Tipo:'', Descripción:'• Hornos 4, 5, 6: no admiten piezas con H > 48 horas'},
+  ];
+  const wsI = XLSX.utils.json_to_sheet(instrRows);
+  wsI['!cols'] = [{wch:14},{wch:16},{wch:60},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, wsI, 'Instrucciones');
+
+  XLSX.writeFile(wb, 'Plantilla_Hornos_POINSA.xlsx');
+}
+
+// ════════════════════════════════════════════
+// RESET
+// ════════════════════════════════════════════
+function resetear() {
+  state = {csvData:null, hornos:[], frecuencias:{}, resultados:{}, noAsignados:[], allRows:[], filteredRows:[], sortCol:0, sortAsc:true};
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileName').classList.add('hidden');
+  document.getElementById('hornosInput').value = '';
+  document.getElementById('hornosConfig').innerHTML = '';
+  document.getElementById('btnEjecutar').disabled = true;
+  document.getElementById('btnExcel').classList.add('hidden');
+  document.getElementById('btnReset').classList.add('hidden');
+  document.getElementById('welcomeScreen').classList.remove('hidden');
+  document.getElementById('resultsScreen').classList.add('hidden');
+  setTab(0);
+}
+
+// ════════════════════════════════════════════
+// ALERTAS (sidebar o inline)
+// ════════════════════════════════════════════
+function mostrarAlerta(tipo, msg) {
+  // Insertar alerta temporal arriba del sidebar
+  const existing = document.getElementById('sidebarAlert');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'sidebarAlert';
+  div.className = `alert alert-${tipo}`;
+  div.style.cssText = 'position:fixed;top:72px;right:24px;max-width:340px;z-index:999;animation:fadeIn .2s';
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
+}
+</style>
+</script>
+</body>
+</html>
