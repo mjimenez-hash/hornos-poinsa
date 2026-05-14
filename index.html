@@ -378,9 +378,9 @@ hr { border: none; border-top: 1px solid var(--line); margin: 12px 0; }
       <div class="card-header"><div class="badge">01</div><span>Archivo de piezas</span></div>
       <div class="card-body">
         <div class="file-drop" id="fileDrop">
-          <input type="file" id="fileInput" accept=".csv,.txt">
+          <input type="file" id="fileInput" accept=".csv,.txt,.xlsx,.xls,.xlsm">
           <div class="icon">📄</div>
-          <p>Arrastra el CSV aquí<br>o haz clic para seleccionar</p>
+          <p>Arrastra el CSV o Excel aquí<br>o haz clic para seleccionar</p>
           <div class="filename hidden" id="fileName"></div>
         </div>
         <div class="mt8">
@@ -621,11 +621,20 @@ function setupFileDrop() {
 }
 
 function procesarArchivo(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    const raw = e.target.result;
+  const esExcel = /\.(xlsx|xls|xlsm|xlsb)$/i.test(file.name);
+
+  // Detectar xlsx por magic bytes aunque tenga extensión .csv
+  function leerYProcesar(arrayBuf) {
+    const bytes = new Uint8Array(arrayBuf.slice(0, 4));
+    const esZip = bytes[0]===0x50 && bytes[1]===0x4B; // PK → xlsx
     try {
-      const df = parsearCSV(raw);
+      let df;
+      if (esExcel || esZip) {
+        df = parsearExcel(arrayBuf);
+      } else {
+        const texto = new TextDecoder('utf-8').decode(arrayBuf);
+        df = parsearCSV(texto);
+      }
       state.csvData = df;
       document.getElementById('fileName').textContent = '✓ ' + file.name;
       document.getElementById('fileName').classList.remove('hidden');
@@ -634,8 +643,53 @@ function procesarArchivo(file) {
     } catch(err) {
       mostrarAlerta('err', '✗ Error al leer el archivo: ' + err.message);
     }
-  };
-  reader.readAsText(file, 'utf-8');
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => leerYProcesar(e.target.result);
+  reader.readAsArrayBuffer(file);
+}
+
+function parsearExcel(arrayBuf) {
+  const wb = XLSX.read(arrayBuf, {type: 'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  // header:1 → array de arrays; después normalizamos nombres
+  const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  if (raw.length < 2) throw new Error('El archivo Excel está vacío o no tiene datos.');
+
+  // Normalizar cabeceras: trim + quitar BOM
+  const headers = raw[0].map(h => String(h||'').trim().replace(/^\uFEFF/,''));
+
+  const required = ['OF','Modelo','Altura','Volumen','Color','Cantidad','Semana','KG','H'];
+  const missing = required.filter(r => !headers.includes(r));
+  if (missing.length) throw new Error(`Faltan columnas: ${missing.join(', ')}`);
+
+  const rows = [];
+  for (let i = 1; i < raw.length; i++) {
+    const vals = raw[i];
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = vals[idx] !== undefined ? String(vals[idx]).trim() : ''; });
+
+    const parseNum = s => parseFloat(String(s).replace(',','.')) || 0;
+    const vol  = parseNum(obj.Volumen);
+    const alt  = parseNum(obj.Altura);
+    const cant = parseInt(obj.Cantidad) || 0;
+    if (vol <= 0 || alt <= 0 || cant <= 0) continue;
+
+    rows.push({
+      OF:    String(obj.OF || 'SIN_OF'),
+      Modelo:String(obj.Modelo || 'SIN_MODELO'),
+      Color: String(obj.Color||'M').trim().toUpperCase(),
+      Altura:alt,
+      Volumen_unit: vol,
+      KG_unit:  parseNum(obj.KG),
+      H:        parseNum(obj.H),
+      Cantidad: cant,
+      Semana_original: parseInt(obj.Semana) || 1,
+    });
+  }
+  if (!rows.length) throw new Error('No se encontraron filas válidas. Verifica los datos.');
+  return rows;
 }
 
 function parsearCSV(raw) {
@@ -645,7 +699,7 @@ function parsearCSV(raw) {
   if ((firstLine.match(/,/g)||[]).length > (firstLine.match(/;/g)||[]).length) sep = ',';
 
   const lines = raw.trim().split('\n').map(l => l.replace(/\r/g,''));
-  const headers = lines[0].split(sep).map(h => h.trim().replace(/^["']|["']$/g,''));
+  const headers = lines[0].split(sep).map(h => h.trim().replace(/^["'\uFEFF]|["']$/g,'').trim());
 
   const required = ['OF','Modelo','Altura','Volumen','Color','Cantidad','Semana','KG','H'];
   const missing = required.filter(r => !headers.includes(r));
