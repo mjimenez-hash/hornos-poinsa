@@ -383,6 +383,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 12px 0; }
           <p>Arrastra el CSV o Excel aquí<br>o haz clic para seleccionar</p>
           <div class="filename hidden" id="fileName"></div>
         </div>
+        <div id="fileError" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(208,48,48,.15);border:1px solid rgba(208,48,48,.4);border-radius:4px;font-family:var(--mono);font-size:11px;color:#f08080;word-break:break-all"></div>
         <div class="mt8">
           <button class="btn btn-ghost" onclick="descargarPlantilla()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -643,6 +644,8 @@ function procesarArchivo(file) {
       mostrarAlerta('ok', `✓ Archivo cargado: ${df.length} filas válidas encontradas.`);
     } catch(err) {
       console.error('Error cargando archivo:', err);
+      const errDiv = document.getElementById('fileError');
+      if (errDiv) { errDiv.style.display = 'block'; errDiv.textContent = '✗ ' + (err.message || String(err)); }
       mostrarAlerta('err', '✗ Error al leer el archivo: ' + (err.message || String(err)));
     }
   }
@@ -655,9 +658,11 @@ function procesarArchivo(file) {
 function parsearExcel(arrayBuf) {
   let wb;
   try {
-    wb = XLSX.read(arrayBuf, {type: 'arraybuffer'});
+    // SheetJS 0.18.x requiere Uint8Array con type:'array', NO ArrayBuffer directamente
+    const uint8 = new Uint8Array(arrayBuf);
+    wb = XLSX.read(uint8, {type: 'array'});
   } catch(e) {
-    throw new Error('No se pudo abrir el fichero como Excel. ¿Es un .xlsx válido? (' + e.message + ')');
+    throw new Error('No se pudo abrir el fichero como Excel: ' + e.message);
   }
   const ws = wb.Sheets[wb.SheetNames[0]];
   // header:1 → array de arrays; después normalizamos nombres
@@ -1450,7 +1455,6 @@ function mostrarAlerta(tipo, msg) {
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 5000);
 }
-</style>
 </script>
 </body>
 </html>
