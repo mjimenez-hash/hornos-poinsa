@@ -625,8 +625,9 @@ function procesarArchivo(file) {
 
   // Detectar xlsx por magic bytes aunque tenga extensión .csv
   function leerYProcesar(arrayBuf) {
-    const bytes = new Uint8Array(arrayBuf.slice(0, 4));
-    const esZip = bytes[0]===0x50 && bytes[1]===0x4B; // PK → xlsx
+    // Crear vista sin copiar (funciona con cualquier ArrayBuffer)
+    const bytes = new Uint8Array(arrayBuf, 0, Math.min(4, arrayBuf.byteLength));
+    const esZip = bytes[0] === 0x50 && bytes[1] === 0x4B; // 'PK' → formato xlsx/zip
     try {
       let df;
       if (esExcel || esZip) {
@@ -641,7 +642,8 @@ function procesarArchivo(file) {
       checkReady();
       mostrarAlerta('ok', `✓ Archivo cargado: ${df.length} filas válidas encontradas.`);
     } catch(err) {
-      mostrarAlerta('err', '✗ Error al leer el archivo: ' + err.message);
+      console.error('Error cargando archivo:', err);
+      mostrarAlerta('err', '✗ Error al leer el archivo: ' + (err.message || String(err)));
     }
   }
 
@@ -651,7 +653,12 @@ function procesarArchivo(file) {
 }
 
 function parsearExcel(arrayBuf) {
-  const wb = XLSX.read(arrayBuf, {type: 'array'});
+  let wb;
+  try {
+    wb = XLSX.read(arrayBuf, {type: 'arraybuffer'});
+  } catch(e) {
+    throw new Error('No se pudo abrir el fichero como Excel. ¿Es un .xlsx válido? (' + e.message + ')');
+  }
   const ws = wb.Sheets[wb.SheetNames[0]];
   // header:1 → array de arrays; después normalizamos nombres
   const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
